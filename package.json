@@ -1,1 +1,28 @@
-
+{
+  "name": "blog-chatbot-api",
+  "version": "1.0.0",
+  "description": "API per chatbot e funzioni interattive del blog",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "echo 'No build step required'",
+    "start": "echo 'This is a Vercel serverless project'"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.38.0",
+    "anthropic": "^0.24.0",
+    "cors": "^2.8.5"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "chatbot",
+    "claude",
+    "supabase",
+    "vercel",
+    "serverless"
+  ],
+  "author": "Il tuo nome",
+  "license": "MIT"
+}

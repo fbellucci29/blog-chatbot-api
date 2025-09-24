@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
-    "anthropic": "^0.24.0",
+    "anthropic": "latest",
     "cors": "^2.8.5"
   },
   "engines": {

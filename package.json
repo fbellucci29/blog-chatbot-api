@@ -1,5 +1,5 @@
 {
-  "name": "blog-chatbot",
+  "name": "blog-chatbot-api",
   "version": "1.0.0",
   "description": "API chatbot per blog sicurezza",
   "scripts": {

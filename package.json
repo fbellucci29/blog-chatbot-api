@@ -1,9 +1,15 @@
 {
-  "name": "chatbot-api-v2",
+  "name": "blog-chatbot",
   "version": "1.0.0",
-  "type": "module",
+  "description": "API chatbot per blog sicurezza",
+  "scripts": {
+    "dev": "vercel dev"
+  },
   "dependencies": {
-    "@supabase/supabase-js": "^2.45.0",
-    "anthropic": "^0.27.0"
+    "@supabase/supabase-js": "^2.39.0",
+    "anthropic": "^0.25.0"
+  },
+  "engines": {
+    "node": "18"
   }
 }

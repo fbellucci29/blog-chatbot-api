@@ -1,320 +1,190 @@
-<!-- Widget Chatbot Sicurezza SEMPLIFICATO -->
-<style>
-.safety-bot-widget {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 9999;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.bot-trigger {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 15px 25px;
-    border-radius: 50px;
-    cursor: pointer;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-    font-weight: 600;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: transform 0.3s;
-}
-
-.bot-trigger:hover {
-    transform: translateY(-2px);
-}
-
-.bot-window {
-    position: absolute;
-    bottom: 70px;
-    right: 0;
-    width: 450px;
-    height: 650px;
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-    display: none;
-    flex-direction: column;
-    overflow: hidden;
-}
-
-.bot-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    padding: 20px;
-    font-weight: 600;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.bot-close {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 24px;
-    cursor: pointer;
-    padding: 0;
-    width: 30px;
-    height: 30px;
-}
-
-.bot-messages {
-    flex: 1;
-    overflow-y: auto;
-    padding: 20px;
-    background: #f9fafb;
-}
-
-.bot-message {
-    margin-bottom: 15px;
-    display: flex;
-    flex-direction: column;
-}
-
-.bot-message.user {
-    align-items: flex-end;
-}
-
-.bot-message.assistant {
-    align-items: flex-start;
-}
-
-.message-bubble {
-    max-width: 80%;
-    padding: 12px 16px;
-    border-radius: 18px;
-    line-height: 1.5;
-    font-size: 14px;
-}
-
-.bot-message.user .message-bubble {
-    background: #667eea;
-    color: white;
-}
-
-.bot-message.assistant .message-bubble {
-    background: white;
-    color: #374151;
-    border: 1px solid #e5e7eb;
-}
-
-.bot-input-area {
-    padding: 20px;
-    background: white;
-    border-top: 1px solid #e5e7eb;
-    display: flex;
-    gap: 10px;
-}
-
-.bot-input {
-    flex: 1;
-    border: 1px solid #d1d5db;
-    border-radius: 25px;
-    padding: 12px 20px;
-    font-size: 14px;
-    outline: none;
-}
-
-.bot-input:focus {
-    border-color: #667eea;
-}
-
-.bot-send {
-    background: #667eea;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 44px;
-    height: 44px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.bot-send:hover:not(:disabled) {
-    background: #5a67d8;
-}
-
-.bot-send:disabled {
-    background: #9ca3af;
-    cursor: not-allowed;
-}
-
-.bot-typing {
-    display: none;
-    padding: 12px 16px;
-    background: white;
-    border-radius: 18px;
-    border: 1px solid #e5e7eb;
-    margin: 10px 20px;
-}
-
-.typing-dots {
-    display: flex;
-    gap: 4px;
-}
-
-.typing-dots span {
-    width: 8px;
-    height: 8px;
-    background: #9ca3af;
-    border-radius: 50%;
-    animation: typing 1.4s infinite;
-}
-
-.typing-dots span:nth-child(2) {
-    animation-delay: 0.2s;
-}
-
-.typing-dots span:nth-child(3) {
-    animation-delay: 0.4s;
-}
-
-@keyframes typing {
-    0%, 60%, 100% {
-        transform: translateY(0);
-    }
-    30% {
-        transform: translateY(-10px);
-    }
-}
-
-@media (max-width: 480px) {
-    .bot-window {
-        width: 100%;
-        height: 100%;
-        bottom: 0;
-        right: 0;
-        border-radius: 0;
-    }
-}
-</style>
-
-<div class='safety-bot-widget'>
-    <div class='bot-trigger' onclick='toggleBot()'>
-        🛡️ Esperto Sicurezza AI
-    </div>
-    
-    <div class='bot-window' id='botWindow'>
-        <div class='bot-header'>
-            <span>💬 Assistente D.Lgs 81/2008</span>
-            <button class='bot-close' onclick='toggleBot()'>×</button>
-        </div>
-        
-        <div class='bot-messages' id='botMessages'>
-            <div class='bot-message assistant'>
-                <div class='message-bubble'>
-                    Ciao! Sono il tuo assistente AI specializzato in sicurezza sul lavoro. 
-                    Posso aiutarti con DPI, normative, procedure di emergenza e tutto ciò che riguarda il D.Lgs 81/2008.
-                    <br/><br/>
-                    💡 <strong>Fai pure la tua domanda!</strong>
-                </div>
-            </div>
-        </div>
-        
-        <div class='bot-typing' id='botTyping'>
-            <div class='typing-dots'>
-                <span></span>
-                <span></span>
-                <span></span>
-            </div>
-        </div>
-        
-        <div class='bot-input-area'>
-            <input class='bot-input' id='botInput' onkeypress='if(event.key==="Enter") sendBotMessage()' placeholder='Fai la tua domanda sulla sicurezza sul lavoro...' type='text'/>
-            <button class='bot-send' id='botSend' onclick='sendBotMessage()'>
-                <svg fill='currentColor' height='20' viewBox='0 0 24 24' width='20'>
-                    <path d='M2.01 21L23 12 2.01 3 2 10l15 2-15 2z'/>
-                </svg>
-            </button>
-        </div>
-    </div>
-</div>
-
-<script>
-let botState = {
-    isOpen: false
-};
-
-function toggleBot() {
-    botState.isOpen = !botState.isOpen;
-    const botWindow = document.getElementById('botWindow');
-    
-    if (botState.isOpen) {
-        botWindow.style.display = 'flex';
-        // Focus sul campo input quando si apre
-        setTimeout(() => {
-            document.getElementById('botInput').focus();
-        }, 100);
-    } else {
-        botWindow.style.display = 'none';
-    }
-}
-
-function addBotMessage(text, sender) {
-    const messagesDiv = document.getElementById('botMessages');
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'bot-message ' + sender;
-    messageDiv.innerHTML = "<div class='message-bubble'>" + text + "</div>";
-    messagesDiv.appendChild(messageDiv);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-
-async function sendBotMessage() {
-    const input = document.getElementById('botInput');
-    const message = input.value.trim();
-    
-    if (!message) return;
-    
-    input.value = '';
-    input.disabled = true;
-    document.getElementById('botSend').disabled = true;
-    
-    addBotMessage(message, 'user');
-    document.getElementById('botTyping').style.display = 'block';
-    
-    try {
-        // Chiamata API Claude diretta
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': 'TUA_API_KEY_QUI', // SOSTITUISCI CON LA TUA API KEY
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-                model: 'claude-3-sonnet-20240229',
-                max_tokens: 1000,
-                system: 'Sei un esperto consulente per la sicurezza sul lavoro specializzato nel D.Lgs 81/2008 italiano. Rispondi sempre in italiano, cita articoli specifici quando pertinenti.',
-                messages: [{
-                    role: 'user',
-                    content: message
-                }]
-            })
-        });
-        
-        document.getElementById('botTyping').style.display = 'none';
-        
-        if (response.ok) {
-            const data = await response.json();
-            const aiResponse = data.content[0].text;
-            addBotMessage(aiResponse, 'assistant');
-        } else {
-            addBotMessage('Mi dispiace, si è verificato un errore con il servizio AI. Riprova tra poco.', 'assistant');
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API Chatbot</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
         }
         
-    } catch (error) {
-        document.getElementById('botTyping').style.display = 'none';
-        addBotMessage('Mi dispiace, si è verificato un errore di connessione. Riprova tra poco.', 'assistant');
-    } finally {
-        input.disabled = false;
-        document.getElementById('botSend').disabled = false;
-        input.focus();
-    }
-}
-</script>
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .chat-area {
+            border: 1px solid #ddd;
+            height: 300px;
+            padding: 15px;
+            overflow-y: auto;
+            background: #fafafa;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        
+        .message {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .user-message {
+            background: #007bff;
+            color: white;
+            margin-left: 50px;
+        }
+        
+        .bot-message {
+            background: #e9ecef;
+            color: #333;
+            margin-right: 50px;
+        }
+        
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            text-align: center;
+            margin: 10px 0;
+            font-style: italic;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Test API Chatbot Sicurezza</h1>
+        
+        <div class="chat-area" id="chatArea">
+            <div class="message bot-message">
+                <strong>Bot:</strong> Ciao! Scrivi una domanda per testare l'API.
+            </div>
+        </div>
+        
+        <div class="status" id="status"></div>
+        
+        <div class="input-area">
+            <input type="text" id="messageInput" placeholder="Scrivi la tua domanda..." />
+            <button onclick="sendMessage()" id="sendBtn">Invia</button>
+        </div>
+    </div>
+
+    <script>
+        function addMessage(text, type) {
+            const chatArea = document.getElementById('chatArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}-message`;
+            messageDiv.innerHTML = `<strong>${type === 'user' ? 'Tu' : 'Bot'}:</strong> ${text}`;
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+        }
+
+        function setStatus(text) {
+            document.getElementById('status').textContent = text;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Disabilita input
+            input.disabled = true;
+            sendBtn.disabled = true;
+            setStatus('Invio in corso...');
+            
+            // Aggiungi messaggio utente
+            addMessage(message, 'user');
+            input.value = '';
+            
+            try {
+                // Chiamata API - CAMBIA QUESTO URL CON IL TUO PROGETTO
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message
+                    })
+                });
+                
+                setStatus('Risposta ricevuta');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addMessage(data.response, 'bot');
+                } else {
+                    const errorText = await response.text();
+                    addMessage(`Errore ${response.status}: ${errorText}`, 'bot');
+                }
+                
+            } catch (error) {
+                setStatus('Errore di connessione');
+                addMessage(`Errore di connessione: ${error.message}`, 'bot');
+            } finally {
+                // Riabilita input
+                input.disabled = false;
+                sendBtn.disabled = false;
+                input.focus();
+                setStatus('');
+            }
+        }
+
+        // Invio con Enter
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Focus iniziale
+        document.getElementById('messageInput').focus();
+    </script>
+</body>
+</html>

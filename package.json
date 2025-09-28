@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "dependencies": {
-    "@supabase/supabase-js": "^2.38.0",
-    "anthropic": "^0.20.0"
+    "@supabase/supabase-js": "latest",
+    "anthropic": "latest"
   }
 }

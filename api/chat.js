@@ -22,9 +22,9 @@ export default async function handler(req, res) {
                 'anthropic-version': '2023-06-01'
             },
             body: JSON.stringify({
-                model: 'claude-3-5-sonnet-20241022',
+                model: 'claude-3-sonnet-20240229',
                 max_tokens: 1000,
-                system: 'Sei un consulente di sicurezza sul lavoro. Rispondi in italiano.',
+                system: 'Sei un consulente di sicurezza sul lavoro specializzato nel D.Lgs 81/2008. Rispondi in italiano.',
                 messages: [{ role: 'user', content: message }]
             })
         });

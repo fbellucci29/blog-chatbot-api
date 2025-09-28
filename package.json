@@ -4,6 +4,6 @@
   "type": "module",
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
-    "anthropic": "^0.24.3"
+    "anthropic": "^0.20.0"
   }
 }

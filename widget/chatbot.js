@@ -263,7 +263,7 @@
 
 <script>
 // URL API Vercel (da aggiornare dopo deploy)
-const BOT_API_URL = 'https://tuo-progetto.vercel.app';
+const BOT_API_URL = 'https://blog-chatbot-2xr4orc3s-francesca-belluccis-projects.vercel.app/';
 
 let botState = {
     isOpen: false,

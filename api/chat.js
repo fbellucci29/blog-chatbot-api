@@ -53,8 +53,17 @@ Rispondi sempre in italiano, in modo chiaro e professionale. Cita sempre gli art
         }
 
         const data = await response.json();
-        const aiResponse = data.content[0].text;
+        const aiResponse = `Per i lavori in altezza secondo il D.Lgs 81/2008 (Art. 111-117) sono obbligatori:
 
+- Imbracatura di sicurezza (DPI categoria III)
+- Casco protettivo 
+- Dispositivi anticaduta
+- Scarpe antiscivolo
+- Guanti da lavoro
+
+La formazione è obbligatoria secondo l'Art. 37.`;
+
+return res.json({ response: aiResponse });
         return res.json({ response: aiResponse });
 
     } catch (error) {

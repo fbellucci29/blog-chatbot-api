@@ -1,46 +1,21 @@
-// api/auth/login.ts
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { drizzle } from "drizzle-orm/neon-http";
+// api/auth/login.js
 import { neon } from "@neondatabase/serverless";
-import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
 
-// Schema types (copia dal tuo schema.ts)
-interface User {
-  id: string;
-  email: string;
-  password: string;
-  name: string;
-  role: string;
-  questionsUsed: number;
-  questionsLimit: number;
-  isActive: boolean;
-  createdAt: Date;
-}
-
 // Database connection
-const neonSql = neon(process.env.DATABASE_URL!, {
-  fullResults: true,
-  fetchOptions: {
-    cache: 'no-store',
+const sql = neon(process.env.DATABASE_URL);
+
+export default async function handler(req, res) {
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
   }
-});
-const db = drizzle(neonSql);
 
-// Importa la definizione delle tabelle (dovrai creare un file separato)
-const users = {
-  id: "id",
-  email: "email", 
-  password: "password",
-  name: "name",
-  role: "role",
-  questionsUsed: "questions_used",
-  questionsLimit: "questions_limit",
-  isActive: "is_active",
-  createdAt: "created_at"
-};
-
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ message: 'Method not allowed' });
   }
@@ -53,12 +28,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Trova utente per email
-    const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
-    const user = result[0] as User;
+    const users = await sql`
+      SELECT id, email, password, name, questions_used, questions_limit 
+      FROM users 
+      WHERE email = ${email} 
+      LIMIT 1
+    `;
 
-    if (!user) {
+    if (users.length === 0) {
       return res.status(401).json({ message: 'Credenziali non valide' });
     }
+
+    const user = users[0];
 
     // Verifica password
     const isValid = await bcrypt.compare(password, user.password);
@@ -71,11 +52,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       id: user.id, 
       email: user.email, 
       name: user.name,
-      questionsUsed: user.questionsUsed,
-      questionsLimit: user.questionsLimit
+      questionsUsed: user.questions_used,
+      questionsLimit: user.questions_limit
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ message: 'Errore durante il login' });
   }

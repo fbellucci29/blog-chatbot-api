@@ -1,7 +1,7 @@
 export default function handler(req, res) {
-  res.status(200).json({ 
-    message: 'Hello World!', 
+  return res.status(200).json({
+    message: "API funziona!",
     timestamp: new Date().toISOString(),
-    method: req.method 
+    method: req.method
   });
 }

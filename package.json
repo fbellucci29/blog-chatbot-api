@@ -1,0 +1,13 @@
+{
+  "name": "chatbot-sicurezza",
+  "version": "1.0.0",
+  "description": "Chatbot AI per sicurezza sul lavoro",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": "18.x"
+  }
+}

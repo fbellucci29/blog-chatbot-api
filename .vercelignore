@@ -1,0 +1,6 @@
+# Ignora tutto tranne API e dependencies
+*
+!api/
+!lib/
+!package.json
+!README.md

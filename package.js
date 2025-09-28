@@ -1,0 +1,5 @@
+{
+  "name": "blog-chatbot-api",
+  "version": "1.0.0",
+  "type": "module"
+}

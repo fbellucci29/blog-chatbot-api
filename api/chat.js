@@ -1,5 +1,8 @@
 // api/chat.js - Funzione serverless con rate limiting IP
-import { kv } from '@vercel/kv';
+import { Redis } from '@upstash/redis';
+
+// Inizializza connessione Redis
+const redis = Redis.fromEnv();
 
 export default async function handler(req, res) {
     // CORS headers
@@ -26,7 +29,7 @@ export default async function handler(req, res) {
         const rateLimitKey = `rate_limit:${clientIP}`;
         
         // Ottieni il contatore attuale (null se non esiste)
-        const currentCount = await kv.get(rateLimitKey);
+        const currentCount = await redis.get(rateLimitKey);
         
         // Controlla se ha superato il limite di 3 domande
         if (currentCount !== null && currentCount >= 3) {
@@ -128,7 +131,7 @@ Rispondi sempre in italiano, in modo chiaro, professionale e conciso. Cita gli a
         const newCount = (currentCount || 0) + 1;
         
         // Salva con scadenza di 24 ore (86400 secondi)
-        await kv.set(rateLimitKey, newCount, { ex: 86400 });
+        await redis.set(rateLimitKey, newCount, { ex: 86400 });
 
         // Aggiungi info domande rimanenti
         const remainingQuestions = 3 - newCount;
@@ -147,9 +150,9 @@ Rispondi sempre in italiano, in modo chiaro, professionale e conciso. Cita gli a
     } catch (error) {
         console.error('Unexpected error in chat API:', error);
         
-        // Errori specifici KV
-        if (error.message && error.message.includes('KV')) {
-            console.error('Vercel KV error - check if KV is enabled:', error);
+        // Errori specifici Redis
+        if (error.message && (error.message.includes('Redis') || error.message.includes('Upstash'))) {
+            console.error('Upstash Redis error - check if Redis is enabled:', error);
             return res.status(500).json({ 
                 response: 'Errore di configurazione del database. Contatta l\'amministratore.' 
             });

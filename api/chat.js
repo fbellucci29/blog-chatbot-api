@@ -70,6 +70,8 @@ Le tue responsabilità includono:
 - Guidare nella pianificazione della formazione obbligatoria per lavoratori
 - Spiegare ruoli e responsabilità di datori di lavoro, RSPP, RLS, medici competenti
 
+IMPORTANTE: Scrivi SEMPRE le tue risposte in testo semplice senza formattazione Markdown. NON usare asterischi (**), hashtag (#), trattini (-) per liste o altri simboli di formattazione. Scrivi tutto in testo normale, usando a capo e paragrafi semplici per separare i concetti.
+
 Rispondi sempre in italiano, in modo chiaro, professionale e conciso. Cita gli articoli specifici del D.Lgs 81/2008 quando pertinenti. Se una domanda esula dalla sicurezza sul lavoro, indirizza gentilmente l'utente verso argomenti pertinenti.`,
             messages: [
                 {

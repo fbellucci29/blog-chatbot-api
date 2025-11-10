@@ -1,34 +1,50 @@
-// api/chat.js - Funzione serverless per Vercel
+// api/chat.js - Funzione serverless con rate limiting IP
+import { kv } from '@vercel/kv';
+
 export default async function handler(req, res) {
-    // CORS headers per permettere chiamate dal browser
+    // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    // Gestione preflight OPTIONS request
     if (req.method === 'OPTIONS') {
         return res.status(200).end();
     }
 
-    // Accetta solo richieste POST
     if (req.method !== 'POST') {
-        return res.status(405).json({ 
-            error: 'Method not allowed. Use POST.' 
-        });
+        return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
-        // Estrai il messaggio dal body della richiesta
-        const { message } = req.body;
+        // RATE LIMITING PER IP
+        const clientIP = req.headers['x-forwarded-for']?.split(',')[0].trim() || 
+                         req.headers['x-real-ip'] || 
+                         req.socket.remoteAddress || 
+                         'unknown';
 
-        // Valida che il messaggio sia presente
-        if (!message || typeof message !== 'string' || message.trim() === '') {
-            return res.status(400).json({ 
-                error: 'Message is required and must be a non-empty string' 
+        // Chiave univoca per tracciare le richieste dell'IP
+        const rateLimitKey = `rate_limit:${clientIP}`;
+        
+        // Ottieni il contatore attuale (null se non esiste)
+        const currentCount = await kv.get(rateLimitKey);
+        
+        // Controlla se ha superato il limite di 3 domande
+        if (currentCount !== null && currentCount >= 3) {
+            return res.status(429).json({ 
+                response: '⏳ Hai raggiunto il limite di 3 domande gratuite per oggi.\n\nIl limite si resetterà tra 24 ore. Torna domani per altre domande!\n\n💡 Suggerimento: salva le risposte che ti interessano.' 
             });
         }
 
-        // Valida che l'API key sia configurata
+        // Estrai e valida il messaggio
+        const { message } = req.body;
+
+        if (!message || typeof message !== 'string' || message.trim() === '') {
+            return res.status(400).json({ 
+                error: 'Message is required' 
+            });
+        }
+
+        // Valida API key
         if (!process.env.ANTHROPIC_API_KEY) {
             console.error('ANTHROPIC_API_KEY not configured');
             return res.status(500).json({ 
@@ -36,10 +52,10 @@ export default async function handler(req, res) {
             });
         }
 
-        // Prepara la richiesta per Anthropic API
+        // Prepara richiesta Claude (modello aggiornato)
         const anthropicRequest = {
-            model: 'claude-3-sonnet-20240229',
-            max_tokens: 1000,
+            model: 'claude-sonnet-4-20250514', // Modello più recente
+            max_tokens: 1500,
             system: `Sei un esperto consulente per la sicurezza sul lavoro specializzato nel D.Lgs 81/2008 (Testo Unico sulla Sicurezza sul Lavoro) italiano.
 
 Le tue responsabilità includono:
@@ -51,7 +67,7 @@ Le tue responsabilità includono:
 - Guidare nella pianificazione della formazione obbligatoria per lavoratori
 - Spiegare ruoli e responsabilità di datori di lavoro, RSPP, RLS, medici competenti
 
-Rispondi sempre in italiano, in modo chiaro e professionale. Cita sempre gli articoli specifici del D.Lgs 81/2008 quando pertinenti. Se una domanda esula dalla sicurezza sul lavoro, indirizza gentilmente l'utente verso argomenti pertinenti.`,
+Rispondi sempre in italiano, in modo chiaro, professionale e conciso. Cita gli articoli specifici del D.Lgs 81/2008 quando pertinenti. Se una domanda esula dalla sicurezza sul lavoro, indirizza gentilmente l'utente verso argomenti pertinenti.`,
             messages: [
                 {
                     role: 'user',
@@ -60,7 +76,7 @@ Rispondi sempre in italiano, in modo chiaro e professionale. Cita sempre gli art
             ]
         };
 
-        // Chiamata all'API di Anthropic
+        // Chiamata a Claude
         const response = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
             headers: {
@@ -71,12 +87,10 @@ Rispondi sempre in italiano, in modo chiaro e professionale. Cita sempre gli art
             body: JSON.stringify(anthropicRequest)
         });
 
-        // Controlla se la risposta è valida
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`Anthropic API error ${response.status}:`, errorText);
             
-            // Gestisci errori specifici
             if (response.status === 401) {
                 return res.status(500).json({ 
                     response: 'Errore di autenticazione con il servizio AI' 
@@ -92,10 +106,8 @@ Rispondi sempre in italiano, in modo chiaro e professionale. Cita sempre gli art
             }
         }
 
-        // Estrai la risposta JSON
         const data = await response.json();
         
-        // Valida la struttura della risposta
         if (!data.content || !Array.isArray(data.content) || data.content.length === 0) {
             console.error('Invalid response structure from Anthropic:', data);
             return res.status(500).json({ 
@@ -103,7 +115,6 @@ Rispondi sempre in italiano, in modo chiaro e professionale. Cita sempre gli art
             });
         }
 
-        // Estrai il testo della risposta
         const aiResponse = data.content[0].text;
         
         if (!aiResponse || typeof aiResponse !== 'string') {
@@ -113,23 +124,43 @@ Rispondi sempre in italiano, in modo chiaro e professionale. Cita sempre gli art
             });
         }
 
-        // Restituisci la risposta all'utente
+        // INCREMENTA IL CONTATORE dopo risposta riuscita
+        const newCount = (currentCount || 0) + 1;
+        
+        // Salva con scadenza di 24 ore (86400 secondi)
+        await kv.set(rateLimitKey, newCount, { ex: 86400 });
+
+        // Aggiungi info domande rimanenti
+        const remainingQuestions = 3 - newCount;
+        let responseWithInfo = aiResponse;
+        
+        if (remainingQuestions > 0) {
+            responseWithInfo += `\n\n---\n💬 Domande rimanenti oggi: ${remainingQuestions}/3`;
+        } else {
+            responseWithInfo += `\n\n---\n⏳ Hai utilizzato tutte le 3 domande gratuite. Torna domani!`;
+        }
+
         return res.status(200).json({ 
-            response: aiResponse 
+            response: responseWithInfo
         });
 
     } catch (error) {
-        // Log dell'errore per debugging
         console.error('Unexpected error in chat API:', error);
         
-        // Gestisci errori di rete
+        // Errori specifici KV
+        if (error.message && error.message.includes('KV')) {
+            console.error('Vercel KV error - check if KV is enabled:', error);
+            return res.status(500).json({ 
+                response: 'Errore di configurazione del database. Contatta l\'amministratore.' 
+            });
+        }
+        
         if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
             return res.status(500).json({ 
                 response: 'Impossibile raggiungere il servizio AI. Controlla la connessione.' 
             });
         }
         
-        // Errore generico
         return res.status(500).json({ 
             response: 'Si è verificato un errore interno. Riprova tra poco.' 
         });

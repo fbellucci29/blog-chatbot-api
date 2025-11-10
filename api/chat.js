@@ -60,8 +60,7 @@ export default async function handler(req, res) {
             model: 'claude-sonnet-4-20250514', // Modello più recente
             max_tokens: 1500,
             system: `Sei un esperto consulente per la sicurezza sul lavoro specializzato nel D.Lgs 81/2008 (Testo Unico sulla Sicurezza sul Lavoro) italiano.
-            Prima di rispondere fai sempre una ricerca per eventuali modifiche alla data della domanda.
-
+            
 Le tue responsabilità includono:
 - Fornire consulenza accurata e aggiornata sulla normativa italiana in materia di sicurezza sul lavoro
 - Interpretare correttamente gli articoli del D.Lgs 81/2008 e relative modifiche

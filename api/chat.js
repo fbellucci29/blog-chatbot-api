@@ -1,7 +1,7 @@
-// api/chat.js - Funzione serverless con rate limiting IP
+import Anthropic from '@anthropic-ai/sdk';
 import { Redis } from '@upstash/redis';
+import { searchDocuments } from '../lib/vector-store.js';  // ← AGGIUNGI QUESTA
 
-// Inizializza connessione Redis
 const redis = Redis.fromEnv();
 
 export default async function handler(req, res) {
@@ -54,6 +54,22 @@ export default async function handler(req, res) {
                 response: 'Configurazione server non completa' 
             });
         }
+        console.log('🔍 Ricerca documenti per:', message.trim());
+        const relevantDocs = await searchDocuments(message.trim(), 3);
+        
+        // Costruisci contesto dai documenti
+        let contextFromDocs = '';
+        if (relevantDocs.length > 0) {
+            contextFromDocs = '\n\nDOCUMENTI DI RIFERIMENTO:\n\n';
+            relevantDocs.forEach((doc) => {
+                contextFromDocs += `[Fonte: ${doc.source}]\n${doc.text}\n\n`;
+            });
+            console.log(`✅ Trovati ${relevantDocs.length} documenti rilevanti`);
+        } else {
+            console.log('⚠️ Nessun documento trovato');
+        }
+        
+        // ========== FINE RAG ==========
 
         // Prepara richiesta Claude (modello aggiornato)
         const anthropicRequest = {
@@ -72,7 +88,9 @@ Le tue responsabilità includono:
 
 IMPORTANTE: Scrivi SEMPRE le tue risposte in testo semplice senza formattazione Markdown. NON usare asterischi (**), hashtag (#), trattini (-) per liste o altri simboli di formattazione. Scrivi tutto in testo normale, usando a capo e paragrafi semplici per separare i concetti.
 
-Rispondi sempre in italiano, in modo chiaro, professionale e conciso. Cita gli articoli specifici del D.Lgs 81/2008 quando pertinenti. Se una domanda esula dalla sicurezza sul lavoro, indirizza gentilmente l'utente verso argomenti pertinenti.`,
+Quando hai documenti di riferimento disponibili, usali per fornire risposte accurate e aggiornate. Cita la fonte quando pertinente.
+
+Rispondi sempre in italiano, in modo chiaro, professionale e conciso.` + contextFromDocs,
             messages: [
                 {
                     role: 'user',

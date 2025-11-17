@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
     try {
         // RATE LIMITING PER IP
-        const clientIP = req.headers['x-forwarded-for']?.split(',')[0].trim() || 
+       /* const clientIP = req.headers['x-forwarded-for']?.split(',')[0].trim() || 
                          req.headers['x-real-ip'] || 
                          req.socket.remoteAddress || 
                          'unknown';
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
         if (currentCount !== null && currentCount >= 3) {
             return res.status(429).json({ 
                 response: '⏳ Hai raggiunto il limite di 3 domande gratuite per oggi.\n\nIl limite si resetterà tra 24 ore. Torna domani per altre domande!\n\n💡 Suggerimento: salva le risposte che ti interessano.' 
-            });
+            });*/
         }
 
         // Estrai e valida il messaggio
@@ -148,7 +148,7 @@ Rispondi sempre in italiano, in modo chiaro, professionale e conciso.` + context
         }
 
         // INCREMENTA IL CONTATORE dopo risposta riuscita
-        const newCount = (currentCount || 0) + 1;
+        /*const newCount = (currentCount || 0) + 1;
         
         // Salva con scadenza di 24 ore (86400 secondi)
         await redis.set(rateLimitKey, newCount, { ex: 86400 });
@@ -161,7 +161,7 @@ Rispondi sempre in italiano, in modo chiaro, professionale e conciso.` + context
             responseWithInfo += `\n\n---\n💬 Domande rimanenti oggi: ${remainingQuestions}/3`;
         } else {
             responseWithInfo += `\n\n---\n⏳ Hai utilizzato tutte le 3 domande gratuite. Torna domani!`;
-        }
+        }*/
 
         return res.status(200).json({ 
             response: responseWithInfo

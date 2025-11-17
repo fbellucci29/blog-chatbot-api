@@ -1,8 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { Redis } from '@upstash/redis';
+//import { Redis } from '@upstash/redis';
 import { searchDocuments } from '../lib/vector-store.js';  // ← AGGIUNGI QUESTA
 
-const redis = Redis.fromEnv();
+//const redis = Redis.fromEnv();
 
 export default async function handler(req, res) {
     // CORS headers

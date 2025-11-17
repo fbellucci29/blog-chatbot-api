@@ -1,8 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
-//import { Redis } from '@upstash/redis';
-import { searchDocuments } from '../lib/vector-store.js';  // ← AGGIUNGI QUESTA
+// import { Redis } from '@upstash/redis';
+import { searchDocuments } from '../lib/vector-store.js';
 
-//const redis = Redis.fromEnv();
+// const redis = Redis.fromEnv();
 
 export default async function handler(req, res) {
     // CORS headers
@@ -19,8 +19,9 @@ export default async function handler(req, res) {
     }
 
     try {
-        // RATE LIMITING PER IP
-       /* const clientIP = req.headers['x-forwarded-for']?.split(',')[0].trim() || 
+        // RATE LIMITING PER IP - COMMENTATO PER TEST
+        /* 
+        const clientIP = req.headers['x-forwarded-for']?.split(',')[0].trim() || 
                          req.headers['x-real-ip'] || 
                          req.socket.remoteAddress || 
                          'unknown';
@@ -35,8 +36,9 @@ export default async function handler(req, res) {
         if (currentCount !== null && currentCount >= 3) {
             return res.status(429).json({ 
                 response: '⏳ Hai raggiunto il limite di 3 domande gratuite per oggi.\n\nIl limite si resetterà tra 24 ore. Torna domani per altre domande!\n\n💡 Suggerimento: salva le risposte che ti interessano.' 
-            });*/
+            });
         }
+        */
 
         // Estrai e valida il messaggio
         const { message } = req.body;
@@ -54,6 +56,7 @@ export default async function handler(req, res) {
                 response: 'Configurazione server non completa' 
             });
         }
+        
         console.log('🔍 Ricerca documenti per:', message.trim());
         const relevantDocs = await searchDocuments(message.trim(), 3);
         
@@ -68,12 +71,10 @@ export default async function handler(req, res) {
         } else {
             console.log('⚠️ Nessun documento trovato');
         }
-        
-        // ========== FINE RAG ==========
 
-        // Prepara richiesta Claude (modello aggiornato)
+        // Prepara richiesta Claude
         const anthropicRequest = {
-            model: 'claude-sonnet-4-20250514', // Modello più recente
+            model: 'claude-sonnet-4-20250514',
             max_tokens: 1500,
             system: `Sei un esperto consulente per la sicurezza sul lavoro specializzato nel D.Lgs 81/2008 (Testo Unico sulla Sicurezza sul Lavoro) italiano.
 
@@ -147,8 +148,9 @@ Rispondi sempre in italiano, in modo chiaro, professionale e conciso.` + context
             });
         }
 
-        // INCREMENTA IL CONTATORE dopo risposta riuscita
-        /*const newCount = (currentCount || 0) + 1;
+        // INCREMENTA IL CONTATORE - COMMENTATO PER TEST
+        /*
+        const newCount = (currentCount || 0) + 1;
         
         // Salva con scadenza di 24 ore (86400 secondi)
         await redis.set(rateLimitKey, newCount, { ex: 86400 });
@@ -161,22 +163,30 @@ Rispondi sempre in italiano, in modo chiaro, professionale e conciso.` + context
             responseWithInfo += `\n\n---\n💬 Domande rimanenti oggi: ${remainingQuestions}/3`;
         } else {
             responseWithInfo += `\n\n---\n⏳ Hai utilizzato tutte le 3 domande gratuite. Torna domani!`;
-        }*/
+        }
 
         return res.status(200).json({ 
             response: responseWithInfo
+        });
+        */
+
+        // PER TEST - risposta senza rate limit
+        return res.status(200).json({ 
+            response: aiResponse
         });
 
     } catch (error) {
         console.error('Unexpected error in chat API:', error);
         
-        // Errori specifici Redis
+        // Errori specifici Redis - COMMENTATO PER TEST
+        /*
         if (error.message && (error.message.includes('Redis') || error.message.includes('Upstash'))) {
             console.error('Upstash Redis error - check if Redis is enabled:', error);
             return res.status(500).json({ 
                 response: 'Errore di configurazione del database. Contatta l\'amministratore.' 
             });
         }
+        */
         
         if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED') {
             return res.status(500).json({ 

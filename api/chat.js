@@ -8,33 +8,15 @@ const vectorIndex = new Index({
     token: process.env.UPSTASH_VECTOR_REST_TOKEN,
 });
 
-// Funzione per creare embedding usando HuggingFace
-async function createEmbedding(text) {
-    const response = await fetch(
-        'https://api-inference.huggingface.co/models/sentence-transformers/all-MiniLM-L6-v2',
-        {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${process.env.HF_TOKEN}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ inputs: text })
-        }
-    );
-    
-    if (!response.ok) {
-        throw new Error(`HuggingFace API error: ${response.status}`);
-    }
-    
-    return await response.json();
-}
+
 
 // Funzione per recuperare documenti rilevanti
+// Sostituisci la funzione retrieveRelevantDocs con questa:
 async function retrieveRelevantDocs(query, topK = 3) {
     try {
-        const embedding = await createEmbedding(query);
+        // Query direttamente con testo - Upstash fa embedding automatico
         const results = await vectorIndex.query({
-            vector: embedding,
+            data: query,  // ← Usa 'data' invece di 'vector'
             topK: topK,
             includeMetadata: true,
         });

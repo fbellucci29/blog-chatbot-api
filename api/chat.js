@@ -35,7 +35,7 @@ export default async function handler(req, res) {
         const rateLimitKey = `rate_limit:${clientIP}`;
         const currentCount = await redis.get(rateLimitKey);
         
-        if (currentCount >= 3) {
+        if (currentCount >= 50) {
             return res.status(429).json({ 
                 response: '⏳ Limite raggiunto. Torna domani!' 
             });
@@ -71,9 +71,9 @@ export default async function handler(req, res) {
 
         await redis.set(rateLimitKey, (currentCount || 0) + 1, { ex: 86400 });
         
-        const remaining = 3 - ((currentCount || 0) + 1);
+        const remaining = 50 - ((currentCount || 0) + 1);
         return res.status(200).json({ 
-            response: aiResponse + `\n\n---\n💬 Domande: ${remaining}/3`
+            response: aiResponse + `\n\n---\n💬 Domande: ${remaining}/50`
         });
 
     } catch (error) {

@@ -51,7 +51,7 @@ export default async function handler(req, res) {
         const rateLimitKey = `rate_limit:${clientIP}`;
         const currentCount = await redis.get(rateLimitKey);
         
-        if (currentCount !== null && currentCount >= 3) {
+        if (currentCount !== null && currentCount >= 10) {
             return res.status(429).json({ 
                 response: '⏳ Hai raggiunto il limite di 3 domande gratuite per oggi.\n\nIl limite si resetterà tra 24 ore. Torna domani per altre domande!\n\n💡 Suggerimento: salva le risposte che ti interessano.' 
             });
@@ -146,7 +146,7 @@ Rispondi sempre in italiano, in modo chiaro, professionale e conciso. Cita gli a
         const newCount = (currentCount || 0) + 1;
         await redis.set(rateLimitKey, newCount, { ex: 86400 });
 
-        const remainingQuestions = 3 - newCount;
+        const remainingQuestions = 10 - newCount;
         let responseWithInfo = aiResponse;
         
         if (remainingQuestions > 0) {

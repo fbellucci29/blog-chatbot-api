@@ -11,7 +11,6 @@ const vectorIndex = new Index({
 
 
 // Funzione per recuperare documenti rilevanti
-// Sostituisci la funzione retrieveRelevantDocs con questa:
 async function retrieveRelevantDocs(query, topK = 3) {
     try {
         // Query direttamente con testo - Upstash fa embedding automatico
@@ -53,7 +52,7 @@ export default async function handler(req, res) {
         
         if (currentCount !== null && currentCount >= 10) {
             return res.status(429).json({ 
-                response: '⏳ Hai raggiunto il limite di 3 domande gratuite per oggi.\n\nIl limite si resetterà tra 24 ore. Torna domani per altre domande!\n\n💡 Suggerimento: salva le risposte che ti interessano.' 
+                response: '⏳ Hai raggiunto il limite di 10 domande gratuite per oggi.\n\nIl limite si resetterà tra 24 ore. Torna domani per altre domande!\n\n💡 Suggerimento: salva le risposte che ti interessano.' 
             });
         }
 

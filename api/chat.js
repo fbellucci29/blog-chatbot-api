@@ -69,7 +69,13 @@ export default async function handler(req, res) {
 
         // Recupera documenti rilevanti dal vector DB
         const relevantDocs = await retrieveRelevantDocs(message.trim(), 3);
-        
+
+        //debug per vector
+        console.log('VECTOR DEBUG:', {
+            query: message.trim(),
+            docsFound: relevantDocs.length,
+            docs: relevantDocs
+        });
         // Costruisci context da documenti recuperati
         let contextString = '';
         if (relevantDocs.length > 0) {

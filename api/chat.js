@@ -7,16 +7,19 @@ const vectorIndex = new Index({
     url: process.env.UPSTASH_VECTOR_REST_URL,
     token: process.env.UPSTASH_VECTOR_REST_TOKEN,
 });
-await index.query({ vector: [0.6, 0.8], topK: 3, includeMetadata: true })
 
-export async function findRelevantContent(query: string, k = 4) {
-  const result = await index.query({
-    data: query, // Again, using the data field instead of vector field
-    topK: k,
-    includeMetadata: true, // Fetch metadata as well
-  })
-
-  return result
+async function retrieveRelevantDocs(query, topK = 3) {
+    try {
+        const results = await vectorIndex.query({
+            data: query,
+            topK: topK,
+            includeMetadata: true,
+        });
+        return results.map(r => r.metadata?.content || '').filter(Boolean);
+    } catch (error) {
+        console.error('Vector error:', error);
+        return [];
+    }
 }
 
 export default async function handler(req, res) {

@@ -73,13 +73,13 @@ export default async function handler(req, res) {
         const currentCount = await redis.get(rateLimitKey);
         
         // Controllo limite (3 domande al giorno)
-        if (currentCount !== null && currentCount >= 3) {
+        if (currentCount !== null && currentCount >= 10) {
             const ttl = await redis.ttl(rateLimitKey);
             const hours = Math.floor(ttl / 3600);
             const minutes = Math.floor((ttl % 3600) / 60);
             
             return res.status(429).json({ 
-                response: `⏳ Hai raggiunto il limite di 3 domande gratuite per oggi.\n\nIl limite si resetterà tra ${hours}h ${minutes}m.\n\n💡 Torna domani per altre domande!`,
+                response: `⏳ Hai raggiunto il limite di 10 domande gratuite per oggi.\n\nIl limite si resetterà tra ${hours}h ${minutes}m.\n\n💡 Torna domani per altre domande!`,
                 remainingQuestions: 0
             });
         }
@@ -133,7 +133,7 @@ Rispondi alla domanda utilizzando principalmente il contesto normativo fornito. 
         const newCount = currentCount === null ? 1 : currentCount + 1;
         await redis.set(rateLimitKey, newCount, { ex: 86400 }); // 24 ore
 
-        const remainingQuestions = 3 - newCount;
+        const remainingQuestions = 10 - newCount;
 
         // Step 5: Risposta al client
         return res.status(200).json({

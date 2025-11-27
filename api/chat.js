@@ -24,8 +24,8 @@ async function retrieveRelevantDocs(query, topK = 5) {
             includeMetadata: true,
         });
         
-        // Recupera il campo 'content' dal metadata
-        const docs = results.map(r => r.metadata?.content || '').filter(Boolean);
+        // Recupera il campo 'Data' dal metadata (Upstash usa 'Data' con la D maiuscola)
+        const docs = results.map(r => r.data || r.metadata?.Data || '').filter(Boolean);
         
         console.log(`Retrieved ${docs.length} documents for query: ${query}`);
         return docs;

@@ -19,18 +19,26 @@ const vectorIndex = new Index({
 async function retrieveRelevantDocs(query, topK = 5) {
     try {
         const results = await vectorIndex.query({
-            data: query,  // Upstash fa embedding automatico
+            data: query,  // Upstash fa embedding automatico con ALL_MINILM_L6_V2
             topK: topK,
             includeMetadata: true,
+            includeData: true,  // IMPORTANTE: necessario per recuperare il campo 'data'
         });
         
-        // Recupera il campo 'Data' dal metadata (Upstash usa 'Data' con la D maiuscola)
-        const docs = results.map(r => r.data || r.metadata?.Data || '').filter(Boolean);
+        // Il testo è nel campo 'data' (minuscolo) di ogni risultato
+        const docs = results.map(r => r.data).filter(Boolean);
         
-        console.log(`Retrieved ${docs.length} documents for query: ${query}`);
+        console.log(`[VECTOR] Query: "${query}"`);
+        console.log(`[VECTOR] Retrieved ${docs.length} documents`);
+        if (docs.length > 0) {
+            console.log(`[VECTOR] First doc preview: ${docs[0].substring(0, 150)}...`);
+        } else {
+            console.log('[VECTOR] WARNING: No documents found!');
+        }
+        
         return docs;
     } catch (error) {
-        console.error('Vector search error:', error);
+        console.error('[VECTOR] Error during search:', error);
         return [];
     }
 }
@@ -63,7 +71,7 @@ export default async function handler(req, res) {
             });
         }
 
-        // Rate limiting basato su IP
+        // Rate limiting basato su IP - 20 domande per ora
         const clientIP = req.headers['x-forwarded-for']?.split(',')[0].trim() || 
                          req.headers['x-real-ip'] || 
                          req.socket.remoteAddress || 
@@ -72,19 +80,22 @@ export default async function handler(req, res) {
         const rateLimitKey = `rate_limit:${clientIP}`;
         const currentCount = await redis.get(rateLimitKey);
         
-        // Controllo limite (3 domande al giorno)
-        if (currentCount !== null && currentCount >= 10) {
+        console.log(`[RATE_LIMIT] IP: ${clientIP}, Count: ${currentCount || 0}/20`);
+        
+        // Controllo limite (20 domande per ora)
+        if (currentCount !== null && currentCount >= 20) {
             const ttl = await redis.ttl(rateLimitKey);
-            const hours = Math.floor(ttl / 3600);
-            const minutes = Math.floor((ttl % 3600) / 60);
+            const minutes = Math.floor(ttl / 60);
+            const seconds = ttl % 60;
             
             return res.status(429).json({ 
-                response: `⏳ Hai raggiunto il limite di 10 domande gratuite per oggi.\n\nIl limite si resetterà tra ${hours}h ${minutes}m.\n\n💡 Torna domani per altre domande!`,
+                response: `⏳ Hai raggiunto il limite di 20 domande per ora.\n\nIl limite si resetterà tra ${minutes} minuti e ${seconds} secondi.\n\n💡 Torna tra poco per altre domande!`,
                 remainingQuestions: 0
             });
         }
 
         // Step 1: Recupera documenti rilevanti
+        console.log(`[QUERY] User message: "${message.trim()}"`);
         const relevantDocs = await retrieveRelevantDocs(message.trim(), 5);
         
         // Step 2: Costruisci il contesto per Claude
@@ -111,9 +122,14 @@ ${context}
 Domanda dell'utente: ${message}
 
 Rispondi alla domanda utilizzando principalmente il contesto normativo fornito. Se il contesto non contiene informazioni sufficienti, puoi integrare con la tua conoscenza generale della normativa italiana sulla sicurezza sul lavoro.`;
+            
+            console.log(`[CONTEXT] Added ${relevantDocs.length} documents to context`);
+        } else {
+            console.log('[CONTEXT] No documents found, using Claude base knowledge');
         }
 
         // Step 3: Chiamata a Claude
+        console.log('[CLAUDE] Sending request...');
         const claudeResponse = await anthropic.messages.create({
             model: 'claude-sonnet-4-20250514',
             max_tokens: 1024,
@@ -128,12 +144,14 @@ Rispondi alla domanda utilizzando principalmente il contesto normativo fornito. 
 
         // Estrai risposta
         const responseText = claudeResponse.content[0].text;
+        console.log('[CLAUDE] Response received');
 
         // Step 4: Aggiorna rate limit
         const newCount = currentCount === null ? 1 : currentCount + 1;
-        await redis.set(rateLimitKey, newCount, { ex: 86400 }); // 24 ore
+        await redis.set(rateLimitKey, newCount, { ex: 3600 }); // 3600 secondi = 1 ora
 
-        const remainingQuestions = 10 - newCount;
+        const remainingQuestions = 20 - newCount;
+        console.log(`[RATE_LIMIT] Updated count: ${newCount}/20, Remaining: ${remainingQuestions}`);
 
         // Step 5: Risposta al client
         return res.status(200).json({
@@ -143,7 +161,7 @@ Rispondi alla domanda utilizzando principalmente il contesto normativo fornito. 
         });
 
     } catch (error) {
-        console.error('Error in chat handler:', error);
+        console.error('[ERROR] Handler error:', error);
         
         // Gestione errori specifici
         if (error.message?.includes('rate_limit')) {

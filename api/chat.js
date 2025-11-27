@@ -1,83 +1,161 @@
-// api/chat.js
+// api/chat.js - Bot Sicurezza con RAG e Rate Limiting
+import Anthropic from '@anthropic-ai/sdk';
 import { Redis } from '@upstash/redis';
 import { Index } from '@upstash/vector';
 
+// Inizializzazione client
+const anthropic = new Anthropic({
+    apiKey: process.env.ANTHROPIC_API_KEY,
+});
+
 const redis = Redis.fromEnv();
+
 const vectorIndex = new Index({
     url: process.env.UPSTASH_VECTOR_REST_URL,
     token: process.env.UPSTASH_VECTOR_REST_TOKEN,
 });
 
-async function retrieveRelevantDocs(query, topK = 3) {
+// Funzione per recuperare documenti rilevanti dal Vector DB
+async function retrieveRelevantDocs(query, topK = 5) {
     try {
         const results = await vectorIndex.query({
-            data: query,
+            data: query,  // Upstash fa embedding automatico
             topK: topK,
             includeMetadata: true,
         });
-        return results.map(r => r.metadata?.content || '').filter(Boolean);
+        
+        // Recupera il campo 'content' dal metadata
+        const docs = results.map(r => r.metadata?.content || '').filter(Boolean);
+        
+        console.log(`Retrieved ${docs.length} documents for query: ${query}`);
+        return docs;
     } catch (error) {
-        console.error('Vector error:', error);
+        console.error('Vector search error:', error);
         return [];
     }
 }
 
+// Handler principale
 export default async function handler(req, res) {
+    // CORS headers
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-    if (req.method === 'OPTIONS') return res.status(200).end();
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    // Gestione preflight
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
+    // Solo POST accettato
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method not allowed' });
+    }
 
     try {
-        const clientIP = req.headers['x-forwarded-for']?.split(',')[0].trim() || 'unknown';
-        const rateLimitKey = `rate_limit:${clientIP}`;
-        const currentCount = await redis.get(rateLimitKey);
+        // Estrazione messaggio
+        const { message } = req.body;
         
-        if (currentCount >= 50) {
-            return res.status(429).json({ 
-                response: '⏳ Limite raggiunto. Torna domani!' 
+        if (!message || typeof message !== 'string' || message.trim().length === 0) {
+            return res.status(400).json({ 
+                error: 'Messaggio non valido',
+                response: 'Per favore invia una domanda valida sulla sicurezza sul lavoro.'
             });
         }
 
-        const { message } = req.body;
-        if (!message?.trim()) return res.status(400).json({ error: 'Message required' });
+        // Rate limiting basato su IP
+        const clientIP = req.headers['x-forwarded-for']?.split(',')[0].trim() || 
+                         req.headers['x-real-ip'] || 
+                         req.socket.remoteAddress || 
+                         'unknown';
 
-        const relevantDocs = await retrieveRelevantDocs(message.trim());
-        const context = relevantDocs.length > 0 
-            ? '\n\nDOCUMENTI:\n' + relevantDocs.map((d, i) => `[${i+1}] ${d}`).join('\n\n')
-            : '';
+        const rateLimitKey = `rate_limit:${clientIP}`;
+        const currentCount = await redis.get(rateLimitKey);
+        
+        // Controllo limite (3 domande al giorno)
+        if (currentCount !== null && currentCount >= 3) {
+            const ttl = await redis.ttl(rateLimitKey);
+            const hours = Math.floor(ttl / 3600);
+            const minutes = Math.floor((ttl % 3600) / 60);
+            
+            return res.status(429).json({ 
+                response: `⏳ Hai raggiunto il limite di 3 domande gratuite per oggi.\n\nIl limite si resetterà tra ${hours}h ${minutes}m.\n\n💡 Torna domani per altre domande!`,
+                remainingQuestions: 0
+            });
+        }
 
-        const response = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': process.env.ANTHROPIC_API_KEY,
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify({
-                model: 'claude-sonnet-4-20250514',
-                max_tokens: 1500,
-                system: `Esperto D.Lgs 81/2008. Rispondi in testo semplice senza markdown. Usa i documenti forniti.${context}`,
-                messages: [{ role: 'user', content: message.trim() }]
-            })
+        // Step 1: Recupera documenti rilevanti
+        const relevantDocs = await retrieveRelevantDocs(message.trim(), 5);
+        
+        // Step 2: Costruisci il contesto per Claude
+        let systemPrompt = `Sei un assistente esperto in sicurezza sul lavoro italiana, specializzato nella normativa D.Lgs 81/2008 e aggiornamenti 2025.
+
+Il tuo compito è rispondere a domande sulla sicurezza sul lavoro in modo:
+- Preciso e basato sulla normativa vigente
+- Chiaro e professionale
+- Conciso (massimo 3-4 paragrafi)
+- In italiano
+
+Se la domanda non riguarda la sicurezza sul lavoro, rispondi educatamente che puoi aiutare solo su temi di sicurezza sul lavoro.`;
+
+        let userMessage = message;
+
+        // Se ci sono documenti rilevanti, aggiungili al contesto
+        if (relevantDocs.length > 0) {
+            const context = relevantDocs.join('\n\n---\n\n');
+            userMessage = `Contesto normativo rilevante:
+${context}
+
+---
+
+Domanda dell'utente: ${message}
+
+Rispondi alla domanda utilizzando principalmente il contesto normativo fornito. Se il contesto non contiene informazioni sufficienti, puoi integrare con la tua conoscenza generale della normativa italiana sulla sicurezza sul lavoro.`;
+        }
+
+        // Step 3: Chiamata a Claude
+        const claudeResponse = await anthropic.messages.create({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1024,
+            system: systemPrompt,
+            messages: [
+                {
+                    role: 'user',
+                    content: userMessage
+                }
+            ],
         });
 
-        if (!response.ok) throw new Error('API error');
+        // Estrai risposta
+        const responseText = claudeResponse.content[0].text;
 
-        const data = await response.json();
-        const aiResponse = data.content[0].text;
+        // Step 4: Aggiorna rate limit
+        const newCount = currentCount === null ? 1 : currentCount + 1;
+        await redis.set(rateLimitKey, newCount, { ex: 86400 }); // 24 ore
 
-        await redis.set(rateLimitKey, (currentCount || 0) + 1, { ex: 86400 });
-        
-        const remaining = 50 - ((currentCount || 0) + 1);
-        return res.status(200).json({ 
-            response: aiResponse + `\n\n---\n💬 Domande: ${remaining}/50`
+        const remainingQuestions = 3 - newCount;
+
+        // Step 5: Risposta al client
+        return res.status(200).json({
+            response: responseText,
+            remainingQuestions: remainingQuestions,
+            documentsUsed: relevantDocs.length
         });
 
     } catch (error) {
-        console.error('Error:', error);
-        return res.status(500).json({ response: 'Errore server' });
+        console.error('Error in chat handler:', error);
+        
+        // Gestione errori specifici
+        if (error.message?.includes('rate_limit')) {
+            return res.status(429).json({
+                response: 'Troppe richieste. Riprova tra qualche istante.',
+                error: 'rate_limit'
+            });
+        }
+        
+        return res.status(500).json({
+            response: 'Si è verificato un errore. Riprova tra poco.',
+            error: 'internal_error'
+        });
     }
 }

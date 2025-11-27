@@ -288,7 +288,7 @@ Fai pure la tua domanda sulla sicurezza sul lavoro!
             
             try {
                 // Chiamata all'API locale di Vercel
-                const response = await fetch('/api/chat', {
+                const response = await fetch('https://blog-chatbot-api.vercel.app/api/chat', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -313,6 +313,9 @@ Fai pure la tua domanda sulla sicurezza sul lavoro!
                     console.error('API error:', response.status, errorData);
                     addMessage('Mi dispiace, si è verificato un errore. Riprova tra poco.', 'assistant');
                 }
+                if (data.remainingQuestions !== undefined) {
+                setStatus(`Domande rimanenti oggi: ${data.remainingQuestions}/3`);
+            }
                 
             } catch (error) {
                 hideTyping();

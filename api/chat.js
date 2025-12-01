@@ -28,7 +28,11 @@ async function retrieveRelevantDocs(query, topK = 5) {
         });
         
         // Il testo è nel campo 'data' (minuscolo) di ogni risultato
-        const docs = results.map(r => r.data).filter(Boolean);
+       const docs = results.map(r => {
+    const text = r.data || r.Data || r.metadata?.data || r.metadata?.Data || r.metadata?.content;
+    console.log('Result structure:', JSON.stringify(r, null, 2));
+    return text;
+}).filter(Boolean);
         
         console.log(`[VECTOR] Query: "${query}"`);
         console.log(`[VECTOR] Retrieved ${docs.length} documents`);

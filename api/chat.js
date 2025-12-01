@@ -23,6 +23,8 @@ async function retrieveRelevantDocs(query, topK = 5) {
             topK: topK,
             includeMetadata: true,
             includeData: true,  // IMPORTANTE: necessario per recuperare il campo 'data'
+        }, {
+            namespace: 'leggi-sicurezza'  // FONDAMENTALE: specifica il namespace!
         });
         
         // Il testo è nel campo 'data' (minuscolo) di ogni risultato

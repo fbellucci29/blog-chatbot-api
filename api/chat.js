@@ -16,7 +16,7 @@ const vectorIndex = new Index({
 });
 
 // Funzione per recuperare documenti rilevanti dal Vector DB
-async function retrieveRelevantDocs(query, topK = 5) {
+async function retrieveRelevantDocs(query, topK = 15) {
     try {
         console.log('[VECTOR] Starting query...');
         console.log('[VECTOR] Query text:', query);
@@ -98,7 +98,7 @@ export default async function handler(req, res) {
 
         // Step 1: Recupera documenti rilevanti
         console.log(`[QUERY] User message: "${message.trim()}"`);
-        const relevantDocs = await retrieveRelevantDocs(message.trim(), 5);
+        const relevantDocs = await retrieveRelevantDocs(message.trim(), 15);
         
         // Step 2: Costruisci il contesto per Claude
         let systemPrompt = `Sei un assistente esperto in sicurezza sul lavoro italiana, specializzato nella normativa D.Lgs 81/2008 e aggiornamenti 2025.

@@ -18,33 +18,29 @@ const vectorIndex = new Index({
 // Funzione per recuperare documenti rilevanti dal Vector DB
 async function retrieveRelevantDocs(query, topK = 5) {
     try {
+        console.log('[VECTOR] Starting query...');
+        console.log('[VECTOR] Query text:', query);
+        
         const results = await vectorIndex.query({
-            data: query,  // Upstash fa embedding automatico con ALL_MINILM_L6_V2
+            data: query,
             topK: topK,
             includeMetadata: true,
-            includeData: true,  // IMPORTANTE: necessario per recuperare il campo 'data'
-        }, {
-            namespace: 'leggi-sicurezza'  // FONDAMENTALE: specifica il namespace!
+            includeData: true,
         });
         
-        // Il testo è nel campo 'data' (minuscolo) di ogni risultato
-       const docs = results.map(r => {
-    const text = r.data || r.Data || r.metadata?.data || r.metadata?.Data || r.metadata?.content;
-    console.log('Result structure:', JSON.stringify(r, null, 2));
-    return text;
-}).filter(Boolean);
+        console.log('[VECTOR] Raw results:', JSON.stringify(results, null, 2));
+        console.log('[VECTOR] Results length:', results.length);
         
-        console.log(`[VECTOR] Query: "${query}"`);
-        console.log(`[VECTOR] Retrieved ${docs.length} documents`);
+        const docs = results.map(r => r.data).filter(Boolean);
+        
+        console.log('[VECTOR] Extracted docs:', docs.length);
         if (docs.length > 0) {
-            console.log(`[VECTOR] First doc preview: ${docs[0].substring(0, 150)}...`);
-        } else {
-            console.log('[VECTOR] WARNING: No documents found!');
+            console.log('[VECTOR] First doc:', docs[0].substring(0, 200));
         }
         
         return docs;
     } catch (error) {
-        console.error('[VECTOR] Error during search:', error);
+        console.error('[VECTOR] Error:', error);
         return [];
     }
 }

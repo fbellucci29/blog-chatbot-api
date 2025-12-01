@@ -82,16 +82,16 @@ export default async function handler(req, res) {
         const rateLimitKey = `rate_limit:${clientIP}`;
         const currentCount = await redis.get(rateLimitKey);
         
-        console.log(`[RATE_LIMIT] IP: ${clientIP}, Count: ${currentCount || 0}/20`);
+        console.log(`[RATE_LIMIT] IP: ${clientIP}, Count: ${currentCount || 0}/3`);
         
         // Controllo limite (20 domande per ora)
-        if (currentCount !== null && currentCount >= 20) {
+        if (currentCount !== null && currentCount >= 3) {
             const ttl = await redis.ttl(rateLimitKey);
             const minutes = Math.floor(ttl / 60);
             const seconds = ttl % 60;
             
             return res.status(429).json({ 
-                response: `⏳ Hai raggiunto il limite di 20 domande per ora.\n\nIl limite si resetterà tra ${minutes} minuti e ${seconds} secondi.\n\n💡 Torna tra poco per altre domande!`,
+                response: `⏳ Hai raggiunto il limite di 3 domande per ora.\n\nIl limite si resetterà tra ${minutes} minuti e ${seconds} secondi.\n\n💡 Torna tra poco per altre domande!`,
                 remainingQuestions: 0
             });
         }
@@ -152,8 +152,8 @@ Rispondi alla domanda utilizzando principalmente il contesto normativo fornito. 
         const newCount = currentCount === null ? 1 : currentCount + 1;
         await redis.set(rateLimitKey, newCount, { ex: 3600 }); // 3600 secondi = 1 ora
 
-        const remainingQuestions = 20 - newCount;
-        console.log(`[RATE_LIMIT] Updated count: ${newCount}/20, Remaining: ${remainingQuestions}`);
+        const remainingQuestions = 3 - newCount;
+        console.log(`[RATE_LIMIT] Updated count: ${newCount}/3, Remaining: ${remainingQuestions}`);
 
         // Step 5: Risposta al client
         return res.status(200).json({
@@ -168,7 +168,7 @@ Rispondi alla domanda utilizzando principalmente il contesto normativo fornito. 
         // Gestione errori specifici
         if (error.message?.includes('rate_limit')) {
             return res.status(429).json({
-                response: 'Troppe richieste. Riprova tra qualche istante.',
+                response: 'Hai raggiunto il limite di richieste per oggi. Riprova domani.',
                 error: 'rate_limit'
             });
         }
